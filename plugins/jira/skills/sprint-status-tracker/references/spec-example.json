@@ -1,0 +1,282 @@
+{
+  "meta": {
+    "eyebrow": "SPRINT PROGRESS TRACKER",
+    "title": "Demo Product Delivery Plan (10/08)",
+    "subtitle": "DEMO · Demo Delivery Plan",
+    "week_label": "10–14 August 2026",
+    "as_of": "Tue 11 Aug, 12:15"
+  },
+  "days": [
+    "MON 10",
+    "TUE 11",
+    "WED 12",
+    "THU 13",
+    "FRI 14"
+  ],
+  "reported_days": 2,
+  "groups": [
+    {
+      "name": "Data Migration",
+      "tickets": [
+        {
+          "key": "DEMO-22",
+          "title": "Deploy & configure migration tools",
+          "priority": "2",
+          "owner": "Migration Lead",
+          "story_points": 0.5,
+          "status_by_day": [
+            "Released",
+            "Released"
+          ]
+        },
+        {
+          "key": "DEMO-4",
+          "title": "Migration: users",
+          "priority": "3",
+          "owner": "Migration Lead",
+          "story_points": 5.0,
+          "status_by_day": [
+            "In Progress",
+            "In Progress"
+          ]
+        },
+        {
+          "key": "DEMO-5",
+          "title": "Migration: transactions",
+          "priority": "3",
+          "owner": "Migration Lead",
+          "story_points": 4.0,
+          "status_by_day": [
+            "To Do",
+            "To Do"
+          ]
+        },
+        {
+          "key": "DEMO-6",
+          "title": "Migration: referenceData",
+          "priority": "4",
+          "owner": "Migration Lead",
+          "story_points": null,
+          "status_by_day": [
+            "To Do",
+            "To Do"
+          ]
+        },
+        {
+          "key": "DEMO-7",
+          "title": "Migration: userSettings",
+          "priority": "4",
+          "owner": "Migration Lead",
+          "story_points": 1.5,
+          "status_by_day": [
+            "To Do",
+            "To Do"
+          ]
+        },
+        {
+          "key": "DEMO-8",
+          "title": "Migration: notifications",
+          "priority": "4",
+          "owner": "Migration Lead",
+          "story_points": 1.5,
+          "status_by_day": [
+            "To Do",
+            "To Do"
+          ]
+        },
+        {
+          "key": "DEMO-9",
+          "title": "Migration: chatMessages",
+          "priority": "4",
+          "owner": "Migration Lead",
+          "story_points": 2.5,
+          "status_by_day": [
+            "To Do",
+            "To Do"
+          ]
+        },
+        {
+          "key": "DEMO-10",
+          "title": "Migration: auditLog",
+          "priority": "4",
+          "owner": "Migration Lead",
+          "story_points": 2.5,
+          "status_by_day": [
+            "To Do",
+            "To Do"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bug Fixes",
+      "tickets": [
+        {
+          "key": "DEMO-1",
+          "title": "BUG T101 — Logger Ingestion performance",
+          "priority": "1",
+          "owner": "Backend Dev 1",
+          "story_points": null,
+          "status_by_day": [
+            "In Progress",
+            "In Review"
+          ]
+        },
+        {
+          "key": "DEMO-2",
+          "title": "BUG T102 — Preferences not shown for new users",
+          "priority": "1",
+          "owner": "Backend Dev 1",
+          "story_points": 5.0,
+          "status_by_day": [
+            "In Progress",
+            "In QA"
+          ]
+        },
+        {
+          "key": "DEMO-3",
+          "title": "BUG T102 — High-priority notifications sent to wrong users",
+          "priority": "1",
+          "owner": "Backend Dev 1",
+          "story_points": 5.0,
+          "status_by_day": [
+            "In Progress",
+            "In QA"
+          ]
+        },
+        {
+          "key": "DEMO-11",
+          "title": "BUG T102 — Pre-existing notifications re-sent when already sent",
+          "priority": "1",
+          "owner": "Backend Dev 1",
+          "story_points": 3.0,
+          "status_by_day": [
+            "In Progress",
+            "In QA"
+          ]
+        },
+        {
+          "key": "DEMO-12",
+          "title": "BUG — APIserver not returning correct data for user",
+          "priority": "2",
+          "owner": "Platform Dev",
+          "story_points": 3.0,
+          "status_by_day": [
+            "In Progress",
+            "In Progress"
+          ]
+        },
+        {
+          "key": "DEMO-13",
+          "title": "BUG T103 — Site audit log not showing all events",
+          "priority": "2",
+          "owner": "Backend Dev 1",
+          "story_points": 2.0,
+          "status_by_day": [
+            "In Progress",
+            "In Progress"
+          ]
+        },
+        {
+          "key": "DEMO-14",
+          "title": "BUG T104 — Broken chatLog UI",
+          "priority": "2",
+          "owner": "Frontend Dev",
+          "story_points": 5.0,
+          "status_by_day": [
+            "To Do",
+            "To Do"
+          ]
+        },
+        {
+          "key": "DEMO-15",
+          "title": "Chat messages rendered incorrectly in chatLog",
+          "priority": "3",
+          "owner": "Integration Dev",
+          "story_points": 5.0,
+          "status_by_day": [
+            "In Progress",
+            "In Progress"
+          ]
+        },
+        {
+          "key": "DEMO-16",
+          "title": "Auto-download of chat attachments not working",
+          "priority": "3",
+          "owner": "Backend Dev 2",
+          "story_points": 3.0,
+          "status_by_day": [
+            "In Progress",
+            "In Progress"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Blocked · Under Scope Review",
+      "tickets": [
+        {
+          "key": "DEMO-18",
+          "title": "T105 — Emoji picker not showing all emojis",
+          "priority": "2",
+          "owner": "Architect",
+          "story_points": 1.0,
+          "status_by_day": [
+            "Blocked",
+            "Blocked"
+          ]
+        },
+        {
+          "key": "DEMO-20",
+          "title": "T104 — Oversized chatLog messages causing performance issues",
+          "priority": "2",
+          "owner": "Architect",
+          "story_points": 3.0,
+          "status_by_day": [
+            "Blocked",
+            "Blocked"
+          ]
+        },
+        {
+          "key": "DEMO-21",
+          "title": "User Settings: Export/Import not working",
+          "priority": "3",
+          "owner": "Data Analyst",
+          "story_points": 1.0,
+          "status_by_day": [
+            "Blocked",
+            "Blocked"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Test Readiness",
+      "tickets": [
+        {
+          "key": "DEMO-17",
+          "title": "Verification of Test environment",
+          "priority": "3",
+          "owner": "Unassigned",
+          "story_points": 2.0,
+          "status_by_day": [
+            "In Progress",
+            "In Progress"
+          ]
+        },
+        {
+          "key": "DEMO-19",
+          "title": "Test Spec Prep",
+          "priority": "2",
+          "owner": "Test Lead",
+          "story_points": 4.0,
+          "status_by_day": [
+            "In Progress",
+            "In Progress"
+          ]
+        }
+      ]
+    }
+  ],
+  "footnote": "<b>The sprint is moving at pace.</b> Within the first 36 hours the team has already carried one item through to release, pushed the alarm-handling fixes from investigation into QA, and started work across every open workstream in parallel. The few items showing as blocked are being actively worked through with the client to confirm priority &mdash; not sitting idle &mdash; and the data migration pipeline is progressing steadily through its sequence. This tracker will be refreshed daily through Friday as the sprint continues."
+}

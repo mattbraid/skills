@@ -1,0 +1,42 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Structural gate: catalogs agree, versions match across manifests,
+      # skills/ is flat, frontmatter is present, bundled paths resolve.
+      # Pure stdlib, no vendor CLI — this is the check that must always run.
+      - name: Validate library structure
+        run: python3 scripts/validate_library.py
+
+      # Every bundled script must at least import cleanly.
+      - name: Byte-compile bundled scripts
+        run: python3 -m compileall -q plugins
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Vendor validator, in addition to ours. Allowed to fail on install or
+      # upstream schema drift — it must not gate a PR on npm being reachable.
+      - name: Validate manifests with the Claude CLI
+        continue-on-error: true
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude plugin validate .
+          for plugin in plugins/*/; do
+            claude plugin validate "$plugin"
+          done

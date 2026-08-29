@@ -1,0 +1,32 @@
+{
+  "_comment": "Every key is optional. Delete what you don't need -- an empty {} renders the defaults.",
+
+  "_report_title": "Main heading. A --title argument overrides this. Default: 'Defect Pipeline'.",
+  "report_title": "DEMO Demo Testing Defect Pipeline",
+
+  "subtitle": "Demo Corp &middot; Demo &middot; open <b>demo_testing</b> defects by position in the lifecycle",
+
+  "_eyebrow": "Small label above the title. Default: 'Defect Lifecycle Tracker'.",
+  "eyebrow": "Defect Lifecycle Tracker",
+
+  "_phase_of": "Merged over the built-in map. Valid phases: Backlog, Analysis, Development, Customer Testing, Deferred.",
+  "phase_of": {
+    "Awaiting Merge": "Development",
+    "On Hold": "Deferred"
+  },
+
+  "_priority_thresholds": "A tile highlights red when its count is strictly greater than this.",
+  "priority_thresholds": { "1": 0, "2": 0, "3": 20, "4": 50, "5": 80 },
+
+  "_priority_exclude_phases": "Phases left out of the P1-P5 totals. Use [] to count every open item.",
+  "priority_exclude_phases": ["Customer Testing"],
+
+  "heat_days": 30,
+  "deferred_detail_max": 6,
+
+  "_as_of": "ISO 8601. Defaults to the export's own generation timestamp, which is almost always what you want.",
+  "as_of": null,
+
+  "_footnote": "Overrides the generated paragraph. HTML allowed. The source/caveat line underneath is always generated.",
+  "footnote": null
+}
