@@ -1,0 +1,22 @@
+{
+  "name": "skills-library",
+  "owner": {
+    "name": "Matthew Braid",
+    "url": "https://github.com/mattbraid"
+  },
+  "metadata": {
+    "description": "A personal library of agent skills, packaged for install into ChatGPT and Codex.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "jira",
+      "source": "./plugins/jira",
+      "version": "1.0.0",
+      "description": "One-page, client-facing Jira reports built from XML/RSS exports: a day-by-day sprint status grid and a defect lifecycle flow.",
+      "category": "reporting",
+      "install_policy": "AVAILABLE",
+      "keywords": ["jira", "reporting", "sprint", "defects", "status"]
+    }
+  ]
+}
