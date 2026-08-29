@@ -1,0 +1,17 @@
+{
+  "name": "mattbraid-skills",
+  "version": "1.0.0",
+  "description": "A personal library of agent skills, packaged for install into Claude Code.",
+  "author": {
+    "name": "Matthew Braid",
+    "url": "https://github.com/mattbraid"
+  },
+  "homepage": "https://github.com/mattbraid",
+  "repository": "https://github.com/mattbraid",
+  "license": "MIT",
+  "keywords": ["jira", "reporting", "sprint", "defects", "status"],
+  "skills": [
+    "./plugins/jira/skills/defect-lifecycle-tracker",
+    "./plugins/jira/skills/sprint-status-tracker"
+  ]
+}

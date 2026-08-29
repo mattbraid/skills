@@ -10,8 +10,8 @@
   },
   "plugins": [
     {
-      "name": "jira",
-      "source": "./plugins/jira",
+      "name": "mattbraid-skills",
+      "source": "./",
       "version": "1.0.0",
       "description": "One-page, client-facing Jira reports built from XML/RSS exports: a day-by-day sprint status grid and a defect lifecycle flow.",
       "category": "reporting",
