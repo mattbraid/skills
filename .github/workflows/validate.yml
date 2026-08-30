@@ -36,7 +36,5 @@ jobs:
         continue-on-error: true
         run: |
           npm install -g @anthropic-ai/claude-code
+          # The repo is the plugin, so this validates both manifests at once.
           claude plugin validate .
-          for plugin in plugins/*/; do
-            claude plugin validate "$plugin"
-          done
