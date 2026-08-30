@@ -22,9 +22,13 @@ jobs:
       - name: Validate library structure
         run: python3 scripts/validate_library.py
 
-      # Every bundled script must at least import cleanly.
+      # Every bundled script must at least import cleanly. compileall exits 0 on
+      # a path that does not exist, so assert the directories first — otherwise a
+      # layout change silently turns this step into a no-op.
       - name: Byte-compile bundled scripts
-        run: python3 -m compileall -q skills
+        run: |
+          test -d plugins && test -d templates
+          python3 -m compileall -q plugins templates scripts
 
       - uses: actions/setup-node@v4
         with:

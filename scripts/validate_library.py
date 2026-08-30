@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Validate the skills library's structure and manifest.
+"""Validate the skills library's structure and manifests.
 
-Checks the things that break an install but not a JSON parse: the marketplace
-and plugin manifests agreeing, skills actually being discoverable from the
-plugin root, and SKILL.md files addressing their bundled scripts by a
+The library is one marketplace listing one plugin per category. This checks the
+things that break an install but not a JSON parse: every category being listed,
+its manifests agreeing, its skills actually being discoverable from that
+category's plugin root, and SKILL.md files addressing their bundled scripts by a
 ${CLAUDE_PLUGIN_ROOT} path that really resolves.
 
 Claude Code only. Pure stdlib, no vendor CLI required. Exits 1 on any error;
@@ -91,7 +92,26 @@ def check_catalog():
         err("marketplace.json: no 'name'")
     if not catalog.get("owner"):
         err("marketplace.json: no 'owner'")
-    return [p for p in catalog["plugins"] if isinstance(p, dict)]
+
+    entries = [p for p in catalog["plugins"] if isinstance(p, dict)]
+
+    seen = set()
+    for entry in entries:
+        name = entry.get("name")
+        if name in seen:
+            err(f"marketplace.json: duplicate plugin name {name!r}")
+        seen.add(name)
+
+    # Every category directory must be listed, or its skills ship to nobody.
+    listed = {(ROOT / e["source"]).resolve()
+              for e in entries if isinstance(e.get("source"), str)}
+    plugins_dir = ROOT / "plugins"
+    if plugins_dir.is_dir():
+        for child in sorted(plugins_dir.iterdir()):
+            if child.is_dir() and child.resolve() not in listed:
+                err(f"plugins/{child.name}/ exists but is not listed in "
+                    "marketplace.json, so it can never be installed")
+    return entries
 
 
 def check_plugin(entry: dict):
@@ -99,6 +119,9 @@ def check_plugin(entry: dict):
     if not name:
         err("marketplace.json: a plugin entry has no 'name'")
         return
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
+        err(f"plugin {name!r}: must be kebab-case — Claude Code accepts other "
+            "forms but the claude.ai marketplace sync rejects them")
     source = entry.get("source")
     if not isinstance(source, str):
         warn(f"plugin '{name}': non-path source, skipping structural checks")

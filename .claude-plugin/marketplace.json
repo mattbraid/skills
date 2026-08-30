@@ -5,13 +5,13 @@
     "url": "https://github.com/mattbraid"
   },
   "metadata": {
-    "description": "A personal library of agent skills for Claude Code.",
+    "description": "A personal library of agent skills for Claude Code, grouped into installable categories.",
     "version": "1.0.2"
   },
   "plugins": [
     {
-      "name": "mattbraid-skills",
-      "source": "./",
+      "name": "jira",
+      "source": "./plugins/jira",
       "version": "1.0.2",
       "description": "One-page, client-facing Jira reports built from XML/RSS exports: a day-by-day sprint status grid and a defect lifecycle flow.",
       "category": "reporting",

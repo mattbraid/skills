@@ -1,0 +1,13 @@
+{
+  "name": "CATEGORY-NAME",
+  "version": "1.0.0",
+  "description": "One line on what this category's skills do.",
+  "author": {
+    "name": "Matthew Braid",
+    "url": "https://github.com/mattbraid"
+  },
+  "homepage": "https://github.com/mattbraid/skills",
+  "repository": "https://github.com/mattbraid/skills",
+  "license": "MIT",
+  "keywords": []
+}

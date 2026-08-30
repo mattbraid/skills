@@ -1,5 +1,5 @@
 {
-  "name": "mattbraid-skills",
+  "name": "jira",
   "version": "1.0.2",
   "description": "One-page, client-facing Jira reports built from XML/RSS exports: a day-by-day sprint status grid and a defect lifecycle flow.",
   "author": {
