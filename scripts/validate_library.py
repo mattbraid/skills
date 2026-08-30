@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Validate the skills library's structure and manifests.
+"""Validate the skills library's structure and manifest.
 
-Checks the things that break an install but not a JSON parse: the two catalogs
-agreeing, versions matching across all four manifests, skills/ being flat, and
-SKILL.md files addressing their bundled scripts from the plugin root rather than
-relative to a working directory that won't exist once installed.
+Checks the things that break an install but not a JSON parse: the marketplace
+and plugin manifests agreeing, skills actually being discoverable from the
+plugin root, and SKILL.md files addressing their bundled scripts by a
+${CLAUDE_PLUGIN_ROOT} path that really resolves.
 
-Pure stdlib, no vendor CLI required. Exits 1 on any error; warnings don't fail.
+Claude Code only. Pure stdlib, no vendor CLI required. Exits 1 on any error;
+warnings don't fail.
 """
 
 from __future__ import annotations  # keeps the annotations below valid on 3.9
@@ -17,12 +18,14 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-CLAUDE_CATALOG = ROOT / ".claude-plugin" / "marketplace.json"
-CODEX_CATALOG = ROOT / ".agents" / "plugins" / "marketplace.json"
+CATALOG = ROOT / ".claude-plugin" / "marketplace.json"
 
-# Codex budgets the whole skills list to 2% of context (8000 chars when unknown)
-# and truncates descriptions to fit. Long ones lose their trigger words first.
+# A long description gets truncated in the skills list the model routes on,
+# and the trigger words are what it loses first.
 DESCRIPTION_WARN_CHARS = 700
+
+# Support for these was removed deliberately; flag any that creep back in.
+REMOVED_VENDOR_PATHS = (".codex-plugin", ".agents")
 
 errors: list[str] = []
 warnings: list[str] = []
@@ -47,14 +50,14 @@ def load_json(path: Path):
         return None
 
 
-def parse_frontmatter(text: str) -> dict | None:
+def parse_frontmatter(text: str):
     """Minimal YAML frontmatter reader: top-level `key: value` pairs only."""
     if not text.startswith("---"):
         return None
     end = text.find("\n---", 3)
     if end == -1:
         return None
-    fields: dict[str, str] = {}
+    fields = {}
     key = None
     for line in text[3:end].splitlines():
         if not line.strip():
@@ -68,100 +71,166 @@ def parse_frontmatter(text: str) -> dict | None:
     return fields
 
 
-def check_catalogs():
-    claude = load_json(CLAUDE_CATALOG)
-    codex = load_json(CODEX_CATALOG)
-    if claude is None or codex is None:
-        return {}
-
-    entries = {}
-    for label, cat in (("claude", claude), ("codex", codex)):
-        if not isinstance(cat.get("plugins"), list):
-            err(f"{label} catalog: 'plugins' must be an array")
-            continue
-        entries[label] = {p.get("name"): p for p in cat["plugins"] if p.get("name")}
-
-    if len(entries) == 2:
-        only_claude = entries["claude"].keys() - entries["codex"].keys()
-        only_codex = entries["codex"].keys() - entries["claude"].keys()
-        for name in sorted(only_claude):
-            err(f"plugin '{name}' is in the Claude catalog but not the Codex one")
-        for name in sorted(only_codex):
-            err(f"plugin '{name}' is in the Codex catalog but not the Claude one")
-        for name in sorted(entries["claude"].keys() & entries["codex"].keys()):
-            cv = entries["claude"][name].get("version")
-            xv = entries["codex"][name].get("version")
-            if cv != xv:
-                err(f"plugin '{name}': catalog versions disagree "
-                    f"(claude={cv!r}, codex={xv!r})")
-
-    return entries.get("claude", {})
+def check_no_removed_vendors():
+    for name in REMOVED_VENDOR_PATHS:
+        for hit in ROOT.rglob(name):
+            if ".git" in hit.parts:
+                continue
+            err(f"{hit.relative_to(ROOT)}: Codex/ChatGPT packaging was removed "
+                "from this library; delete it or restore support deliberately")
 
 
-def check_plugin(name: str, entry: dict):
+def check_catalog():
+    catalog = load_json(CATALOG)
+    if catalog is None:
+        return []
+    if not isinstance(catalog.get("plugins"), list) or not catalog["plugins"]:
+        err("marketplace.json: 'plugins' must be a non-empty array")
+        return []
+    if not catalog.get("name"):
+        err("marketplace.json: no 'name'")
+    if not catalog.get("owner"):
+        err("marketplace.json: no 'owner'")
+    return [p for p in catalog["plugins"] if isinstance(p, dict)]
+
+
+def check_plugin(entry: dict):
+    name = entry.get("name")
+    if not name:
+        err("marketplace.json: a plugin entry has no 'name'")
+        return
     source = entry.get("source")
     if not isinstance(source, str):
         warn(f"plugin '{name}': non-path source, skipping structural checks")
         return
+
     plugin_dir = (ROOT / source).resolve()
     if not plugin_dir.is_dir():
-        err(f"plugin '{name}': source {source} does not exist")
+        err(f"plugin '{name}': source {source!r} does not exist")
         return
 
-    versions = {"catalog": entry.get("version")}
-    for label, rel in (("claude", ".claude-plugin/plugin.json"),
-                       ("codex", ".codex-plugin/plugin.json")):
-        manifest = load_json(plugin_dir / rel)
-        if manifest is None:
-            continue
-        versions[label] = manifest.get("version")
-        if manifest.get("name") != name:
-            err(f"plugin '{name}': {rel} declares name "
-                f"{manifest.get('name')!r}, expected {name!r}")
-        if not manifest.get("description"):
-            err(f"plugin '{name}': {rel} has no description")
-        if manifest.get("license") and not (ROOT / "LICENSE").exists():
-            warn(f"plugin '{name}': {rel} declares a license but "
-                 "there is no LICENSE file at the repo root")
-
-    distinct = {v for v in versions.values() if v is not None}
-    if len(distinct) > 1:
-        err(f"plugin '{name}': version mismatch across manifests — {versions}")
-    if None in versions.values():
-        warn(f"plugin '{name}': a manifest has no version; installers will "
-             "resolve updates by commit SHA, so users get every commit")
-
-    check_skills(name, plugin_dir)
-
-
-def check_skills(plugin: str, plugin_dir: Path):
-    skills_dir = plugin_dir / "skills"
-    if not skills_dir.is_dir():
-        if not (plugin_dir / "SKILL.md").exists():
-            err(f"plugin '{plugin}': no skills/ directory and no root SKILL.md")
+    manifest_path = plugin_dir / ".claude-plugin" / "plugin.json"
+    manifest = load_json(manifest_path)
+    if manifest is None:
         return
 
-    found = False
-    for child in sorted(skills_dir.iterdir()):
-        if child.name.startswith(".") or not child.is_dir():
-            continue
-        found = True
-        skill_md = child / "SKILL.md"
-        if not skill_md.exists():
-            # A directory here with no SKILL.md is the classic nesting mistake:
-            # a category folder that discovery will scan and silently skip.
-            nested = [p for p in child.rglob("SKILL.md")]
-            if nested:
-                err(f"plugin '{plugin}': skills/{child.name}/ has no SKILL.md but "
-                    f"contains {len(nested)} nested one(s) — skills/ must be flat "
-                    "(skills/<name>/SKILL.md)")
-            else:
-                err(f"plugin '{plugin}': skills/{child.name}/ has no SKILL.md")
-            continue
-        check_skill_md(plugin, plugin_dir, child, skill_md)
+    if manifest.get("name") != name:
+        err(f"plugin '{name}': .claude-plugin/plugin.json declares name "
+            f"{manifest.get('name')!r}; it must match the catalog entry")
+    if not manifest.get("description"):
+        err(f"plugin '{name}': .claude-plugin/plugin.json has no description")
+    if manifest.get("license") and not (ROOT / "LICENSE").exists():
+        warn(f"plugin '{name}': a license is declared but there is no LICENSE file")
+
+    cat_v, man_v = entry.get("version"), manifest.get("version")
+    if cat_v != man_v:
+        err(f"plugin '{name}': version mismatch — marketplace.json says "
+            f"{cat_v!r}, plugin.json says {man_v!r}")
+    if cat_v is None:
+        warn(f"plugin '{name}': no version; Claude Code then resolves updates by "
+             "commit SHA, so installers get every commit on the default branch")
+
+    check_skills(name, plugin_dir, manifest)
+
+
+def skill_dirs(name: str, plugin_dir: Path, manifest: dict):
+    """Resolve where skills are discovered from, mirroring Claude Code.
+
+    The default `skills/` directory is always scanned; a `skills` manifest field
+    adds further directories, each of which *contains* skill directories.
+    """
+    roots = []
+    default = plugin_dir / "skills"
+    if default.is_dir():
+        roots.append(default)
+
+    declared = manifest.get("skills")
+    if isinstance(declared, str):
+        declared = [declared]
+    if isinstance(declared, list):
+        for rel in declared:
+            path = (plugin_dir / rel).resolve()
+            if not path.is_dir():
+                err(f"plugin '{name}': skills path {rel!r} in plugin.json "
+                    "does not exist")
+                continue
+            if (path / "SKILL.md").exists():
+                err(f"plugin '{name}': skills path {rel!r} points at a single "
+                    "skill; the field takes directories that *contain* skills")
+                continue
+            roots.append(path)
+    elif declared is not None:
+        err(f"plugin '{name}': 'skills' in plugin.json must be a string or array")
+
+    return roots
+
+
+def check_skills(name: str, plugin_dir: Path, manifest: dict):
+    roots = skill_dirs(name, plugin_dir, manifest)
+    root_skill = plugin_dir / "SKILL.md"
+
+    if not roots:
+        # Single-skill plugin: only valid with no skills/ dir and no manifest field.
+        if root_skill.exists() and manifest.get("skills") is None:
+            check_skill_md(name, plugin_dir, plugin_dir, root_skill)
+        else:
+            err(f"plugin '{name}': no skills/ directory, no usable 'skills' field, "
+                "and no SKILL.md at the plugin root — nothing would be discovered")
+        # Still check for skills shipped outside any discovery root: a root
+        # SKILL.md makes the plugin "valid" while masking exactly that mistake.
+        check_orphaned_skills(name, plugin_dir, roots, root_skill)
+        return
+
+    if root_skill.exists():
+        warn(f"plugin '{name}': SKILL.md at the plugin root is ignored because "
+             "skills are discovered from a directory; delete it to avoid confusion")
+
+    found = 0
+    for root in roots:
+        for child in sorted(root.iterdir()):
+            if child.name.startswith(".") or not child.is_dir():
+                continue
+            skill_md = child / "SKILL.md"
+            if not skill_md.exists():
+                nested = list(child.rglob("SKILL.md"))
+                rel = child.relative_to(plugin_dir)
+                if nested:
+                    err(f"plugin '{name}': {rel}/ has no SKILL.md but contains "
+                        f"{len(nested)} nested one(s) — a skills directory must "
+                        "be flat (<dir>/<name>/SKILL.md)")
+                else:
+                    err(f"plugin '{name}': {rel}/ has no SKILL.md")
+                continue
+            found += 1
+            check_skill_md(name, plugin_dir, child, skill_md)
 
     if not found:
-        warn(f"plugin '{plugin}': skills/ is empty")
+        warn(f"plugin '{name}': no skills found under "
+             f"{[str(r.relative_to(plugin_dir)) for r in roots]}")
+
+    check_orphaned_skills(name, plugin_dir, roots, root_skill)
+
+
+def check_orphaned_skills(name: str, plugin_dir: Path, roots, root_skill: Path):
+    """Find SKILL.md files that ship with the plugin but are never discovered.
+
+    This is the failure that looks like success: the files are in the repo and
+    in the install, so nothing is obviously missing, but Claude only scans the
+    discovery roots and the skill silently never loads.
+    """
+    discovered = {r.resolve() for r in roots}
+    for skill_md in sorted(plugin_dir.rglob("SKILL.md")):
+        if ".git" in skill_md.parts:
+            continue
+        if skill_md == root_skill:
+            continue
+        # Discovered iff its parent directory sits directly in a discovery root.
+        if skill_md.parent.parent.resolve() in discovered:
+            continue
+        err(f"plugin '{name}': {skill_md.relative_to(plugin_dir)} ships with the "
+            "plugin but is outside every skills directory, so it is never "
+            "discovered — move it under skills/ or add its parent to the "
+            "'skills' field in plugin.json")
 
 
 def check_skill_md(plugin: str, plugin_dir: Path, skill_dir: Path, skill_md: Path):
@@ -175,7 +244,7 @@ def check_skill_md(plugin: str, plugin_dir: Path, skill_dir: Path, skill_md: Pat
     name = fm.get("name")
     if not name:
         err(f"{rel}: frontmatter has no 'name'")
-    elif name != skill_dir.name:
+    elif skill_dir != plugin_dir and name != skill_dir.name:
         err(f"{rel}: frontmatter name {name!r} does not match directory "
             f"{skill_dir.name!r} — the mismatch changes the invocation name")
 
@@ -185,7 +254,7 @@ def check_skill_md(plugin: str, plugin_dir: Path, skill_dir: Path, skill_md: Pat
             "has nothing to route on")
     elif len(description) > DESCRIPTION_WARN_CHARS:
         warn(f"{rel}: description is {len(description)} chars; over "
-             f"~{DESCRIPTION_WARN_CHARS} risks truncation in Codex's skills list")
+             f"~{DESCRIPTION_WARN_CHARS} risks truncation in the skills list")
 
     body = text[text.find("\n---", 3) + 4:]
 
@@ -195,31 +264,32 @@ def check_skill_md(plugin: str, plugin_dir: Path, skill_dir: Path, skill_md: Pat
                          r"['\"]?((?:scripts|references|assets)/[^\s'\"]+)",
                          body, re.MULTILINE):
         err(f"{rel}: relative path {m.group(1)!r} in a command — address bundled "
-            "files as ${CLAUDE_PLUGIN_ROOT}/skills/<name>/... instead")
+            "files as ${CLAUDE_PLUGIN_ROOT}/... instead")
 
-    # Every plugin-root-relative path referenced must actually exist.
+    # Every plugin-root-relative path referenced must actually resolve. This is
+    # what catches a skill being moved without its SKILL.md being updated.
     for m in re.finditer(r"\$\{CLAUDE_PLUGIN_ROOT\}/([^\s'\"`)]+)", body):
-        target = plugin_dir / m.group(1)
-        if not target.exists():
+        if not (plugin_dir / m.group(1)).exists():
             err(f"{rel}: references ${{CLAUDE_PLUGIN_ROOT}}/{m.group(1)} "
-                "which does not exist")
+                "which does not exist relative to the plugin root")
 
 
 def main() -> int:
-    catalog = check_catalogs()
-    for name, entry in sorted(catalog.items()):
-        check_plugin(name, entry)
+    check_no_removed_vendors()
+    plugins = check_catalog()
+    for entry in plugins:
+        check_plugin(entry)
 
     for w in warnings:
         print(f"warning: {w}")
     for e in errors:
         print(f"error: {e}")
 
-    plural = "" if len(catalog) == 1 else "s"
     if errors:
         print(f"\n✘ {len(errors)} error(s), {len(warnings)} warning(s)")
         return 1
-    print(f"\n✔ {len(catalog)} plugin{plural} valid, {len(warnings)} warning(s)")
+    plural = "" if len(plugins) == 1 else "s"
+    print(f"\n✔ {len(plugins)} plugin{plural} valid, {len(warnings)} warning(s)")
     return 0
 
 
