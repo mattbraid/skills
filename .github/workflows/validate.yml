@@ -16,15 +16,19 @@ jobs:
         with:
           python-version: "3.11"
 
-      # Structural gate: catalogs agree, versions match across manifests,
-      # skills/ is flat, frontmatter is present, bundled paths resolve.
+      # Structural gate: manifests agree, every skill is actually discoverable,
+      # frontmatter is present, bundled ${CLAUDE_PLUGIN_ROOT} paths resolve.
       # Pure stdlib, no vendor CLI — this is the check that must always run.
       - name: Validate library structure
         run: python3 scripts/validate_library.py
 
-      # Every bundled script must at least import cleanly.
+      # Every bundled script must at least import cleanly. compileall exits 0 on
+      # a path that does not exist, so assert the directories first — otherwise a
+      # layout change silently turns this step into a no-op.
       - name: Byte-compile bundled scripts
-        run: python3 -m compileall -q plugins
+        run: |
+          test -d plugins && test -d templates
+          python3 -m compileall -q plugins templates scripts
 
       - uses: actions/setup-node@v4
         with:
@@ -36,7 +40,5 @@ jobs:
         continue-on-error: true
         run: |
           npm install -g @anthropic-ai/claude-code
+          # The repo is the plugin, so this validates both manifests at once.
           claude plugin validate .
-          for plugin in plugins/*/; do
-            claude plugin validate "$plugin"
-          done
